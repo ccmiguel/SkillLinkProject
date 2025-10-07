@@ -6,7 +6,11 @@ const router = Router();
 // GET - Todas las aulas
 router.get("/", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM public.aula");
+    const result = await pool.query(`
+      SELECT a.*, i.nombre as institucion_nombre
+      FROM public.aula a
+      LEFT JOIN public.institucion i ON a.id_institucion = i.id_institucion
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error("Error al obtener aulas:", error.message);
@@ -18,7 +22,13 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM public.aula WHERE id_aula = $1", [id]);
+    const result = await pool.query(
+      `SELECT a.*, i.nombre as institucion_nombre
+       FROM public.aula a
+       LEFT JOIN public.institucion i ON a.id_institucion = i.id_institucion
+       WHERE a.id_aula = $1`,
+      [id]
+    );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Aula no encontrada" });
@@ -33,10 +43,10 @@ router.get("/:id", async (req, res) => {
 // POST - Crear aula
 router.post("/", async (req, res) => {
   try {
-    const { tipo_aula, lugar, capacidad } = req.body;
+    const { tipo_aula, lugar, capacidad, id_institucion } = req.body;
     const result = await pool.query(
-      "INSERT INTO public.aula (tipo_aula, lugar, capacidad) VALUES ($1, $2, $3) RETURNING *",
-      [tipo_aula, lugar, capacidad]
+      "INSERT INTO public.aula (tipo_aula, lugar, capacidad, id_institucion) VALUES ($1, $2, $3, $4) RETURNING *",
+      [tipo_aula, lugar, capacidad, id_institucion]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -48,10 +58,10 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { tipo_aula, lugar, capacidad } = req.body;
+    const { tipo_aula, lugar, capacidad, id_institucion } = req.body;
     const result = await pool.query(
-      "UPDATE public.aula SET tipo_aula=$1, lugar=$2, capacidad=$3 WHERE id_aula=$4 RETURNING *",
-      [tipo_aula, lugar, capacidad, id]
+      "UPDATE public.aula SET tipo_aula=$1, lugar=$2, capacidad=$3, id_institucion=$4 WHERE id_aula=$5 RETURNING *",
+      [tipo_aula, lugar, capacidad, id_institucion, id]
     );
 
     if (result.rows.length === 0) {
